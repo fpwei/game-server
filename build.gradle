@@ -1,0 +1,22 @@
+group 'org.fpwei'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'war'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-websocket', version: '1.5.9.RELEASE'
+
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+
+    providedCompile group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
