@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public class User {
     private String name;
 
-    private BigDecimal balance;
+    private BigDecimal amount;
 
     public String getName() {
         return name;
@@ -15,11 +15,11 @@ public class User {
         this.name = name;
     }
 
-    public BigDecimal getBalance() {
-        return balance;
+    public BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 }

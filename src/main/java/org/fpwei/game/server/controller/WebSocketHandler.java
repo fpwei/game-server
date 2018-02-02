@@ -1,5 +1,10 @@
 package org.fpwei.game.server.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.fpwei.game.server.entity.User;
 import org.fpwei.game.server.game.Baccarat;
@@ -14,12 +19,15 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@Slf4j
 @Controller
 public class WebSocketHandler extends TextWebSocketHandler {
 
     public static final CopyOnWriteArrayList<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
 
     private static final int LOGIN_GAME = 0;
+
+    private static final Gson gson = new Gson();
 
     @Autowired
     private Baccarat baccarat;
@@ -34,7 +42,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        System.out.println(message.getPayload());
+        log.debug("Receive message [{}] from session: {}", message.getPayload(), session.getId());
         String text = message.getPayload();
 
         if ("join".equals(text)) {
@@ -74,8 +82,13 @@ public class WebSocketHandler extends TextWebSocketHandler {
 //    }
 
     }
-        @Override
-        public void afterConnectionClosed (WebSocketSession session, CloseStatus status) throws Exception {
-            baccarat.leave(session);
-        }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        sessions.remove(session);
+        baccarat.leave(session);
     }
+
+
+
+}
