@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserDao {
     User getPlayerById(String id);
+
+    User getUser(String account, String password);
 }

@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+
+    <title>Baccarat Client</title>
+    <style>
+        html, body, .container {
+            height: 100%;
+        }
+
+        #dashboard th, #dashboard td {
+            text-align: center;
+            vertical-align: middle !important;
+        }
+
+        #bet > div {
+            border: black solid 1px;
+            height: 30px;
+        }
+
+        #category > div {
+            padding: 50px 0px;
+            border: black solid 1px;
+        }
+
+        #bet-money {
+            margin: 20px;
+        }
+    </style>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <script src="https://rawgit.com/MikeMcl/bignumber.js/master/bignumber.js"></script>
+    <script>
+        var wsUri = "ws://localhost:8080/endpoint";
+        var websocket;
+        websocket = new WebSocket(wsUri);
+
+        websocket.onopen = function (evt) {
+            onOpen(evt)
+        };
+        websocket.onclose = function (evt) {
+            onClose(evt)
+        };
+        websocket.onmessage = function (evt) {
+            onMessage(evt)
+        };
+        websocket.onerror = function (evt) {
+            onError(evt)
+        };
+
+        function init() {
+            $('#b1').text('');
+            $('#b2').text('');
+            $('#b3').text('');
+            $('#p1').text('');
+            $('#p2').text('');
+            $('#p3').text('');
+            $('#bet > div').text(0);
+            $('#category > div').css('background-color', 'white');
+            $('#bet-money > button').prop('disabled', false);
+            betCategory = null;
+        }
+
+        function leave() {
+            websocket.close();
+            output.innerHTML = "";
+        }
+
+        function onOpen(evt) {
+            $('#loginBtn').prop('disabled', false);
+            $('#cloginBtn').prop('disabled', false);
+        }
+
+        function onClose(evt) {
+            writeToScreen("DISCONNECTED");
+        }
+
+        function onMessage(evt) {
+            var obj = JSON.parse(evt.data);
+
+            if (obj.broadcast) {
+                // for (var key in obj) {
+                //     if (key === "broadcast") {
+                if (obj.broadcast.type === 'broadcast') {
+                    if (obj.broadcast.message.indexOf("P#1") >= 0)
+                        convertCard(obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1), $('#p1'));
+                    else if (obj.broadcast.message.indexOf("P#2") >= 0)
+                        convertCard(obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1), $('#p2'));
+                    else if (obj.broadcast.message.indexOf("P#3") >= 0)
+                        convertCard(obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1), $('#p3'));
+                    else if (obj.broadcast.message.indexOf("B#1") >= 0)
+                        convertCard(obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1), $('#b1'));
+                    else if (obj.broadcast.message.indexOf("B#2") >= 0)
+                        convertCard(obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1), $('#b2'));
+                    else if (obj.broadcast.message.indexOf("B#3") >= 0)
+                        convertCard(obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1), $('#b3'));
+                    else if (obj.broadcast.message === 'init')
+                        init();
+                    else if (obj.broadcast.message === 'stop')
+                        $('#bet-money > button').prop('disabled', true);
+                    else if (obj.broadcast.message.indexOf('result') >= 0) {
+                        var result = obj.broadcast.message.substring(obj.broadcast.message.indexOf(':') + 1);
+
+                        var win = result.split(',')
+                        for (var i in win) {
+                            $('#' + win[i]).css('background-color', 'yellow');
+                        }
+                    } else
+                        $('#broadcast-msg').val(obj.broadcast.message);
+                } else if (obj.broadcast.type === 'response') {
+                    print('=>' + obj.broadcast.message);
+                } else if (obj.broadcast.type === 'user') {
+                    $('#name').val(obj.broadcast.message.split(',')[0]);
+                    $('#amount').val(obj.broadcast.message.split(',')[1]);
+                }
+
+            }
+        }
+
+        function convertCard(receive, dom) {
+            var temp = receive.replace(/[(), ]/g, '');
+
+            if (temp.indexOf('SPADES') >= 0) {
+                temp = temp.replace('SPADES', '\u2660');
+                dom.css('color', 'black');
+            } else if (temp.indexOf('HEARTS') >= 0) {
+                temp = temp.replace('HEARTS', '\u2665');
+                dom.css('color', 'red');
+            } else if (temp.indexOf('DIAMONDS') >= 0) {
+                temp = temp.replace('DIAMONDS', '\u2666');
+                dom.css('color', 'red');
+            } else if (temp.indexOf('CLUBS') >= 0) {
+                temp = temp.replace('CLUBS', '\u2663');
+                dom.css('color', 'black');
+            }
+            dom.text(temp);
+        }
+
+        function print(text) {
+            var output = $('#output');
+            var now = new Date(Date.now());
+            var hh = now.getHours(), MM = now.getMinutes(), ss = now.getSeconds();
+
+            var formatted = "(" + (hh < 10 ? "0" : "") + hh + (MM < 10 ? ":0" : ":") + MM + (ss < 10 ? ":0" : ":") + ss + ")";
+            output.append(document.createTextNode(formatted)).append(document.createTextNode(text)).append(document.createElement("br"));
+            output.scrollTop(output.prop("scrollHeight"));
+        }
+
+        function onError(evt) {
+            writeToScreen('ERROR: ' + evt.data);
+        }
+
+        function doSend(message) {
+            writeToScreen("SENT: " + message);
+            websocket.send(message);
+        }
+
+        function customLogin() {
+            var loginRequest = {
+                login: {
+                    type: 0
+                }
+            };
+
+            websocket.send(JSON.stringify(loginRequest));
+
+            var joinRequest = {
+                join: {
+                    gameId: "1",
+                    gameType: "1"
+                }
+            };
+
+            websocket.send(JSON.stringify(joinRequest));
+
+            $('#login').css('display', 'none');
+            $('#main').css('display', '')
+
+        }
+
+        $(document).ready(function () {
+            var betRequest = {
+                bet: {
+                    gameId: "1",
+                    gameType: "1",
+                    amount: 0,
+                    attribute: {betType: "", betCategory: ""}
+
+                }
+            };
+            var betCategory;
+
+            $("#category > div").click(function (event) {
+                $('#category > div').css('background-color', '');
+                $(event.target).css('background-color', '#f4433621');
+                betCategory = event.target.id;
+                betRequest.bet.attribute.betType = "RAISE";
+                betRequest.bet.attribute.betCategory = betCategory;
+            });
+
+            $("#bet-money > button").click(function (event) {
+                if (betCategory) {
+                    print("下注：(" + betCategory + "," + event.target.value + ")");
+                    var r = new BigNumber($('#amount').val()).minus(new BigNumber(event.target.value));
+                    if (!r.isNegative()) {
+                        $('#amount').val(r.toString());
+                        var id = '#' + betCategory + '-money';
+                        var ori = $(id).text();
+                        var total = parseInt(ori) + parseInt(event.target.value);
+
+                        $(id).text(total);
+                        betRequest.bet.amount = event.target.value;
+
+                        websocket.send(JSON.stringify(betRequest));
+                    } else {
+                        print('餘額不足');
+                    }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+
+
+<div class="container">
+    <div id="login" class="row h-100">
+        <div class="col"></div>
+        <div class="col align-self-center">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Account</span>
+                </div>
+                <input type="text" class="form-control" aria-label="Default"
+                       aria-describedby="inputGroup-sizing-default">
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Password</span>
+                </div>
+                <input type="text" class="form-control" aria-label="Default"
+                       aria-describedby="inputGroup-sizing-default">
+            </div>
+            <button id="loginBtn" type="button" disabled class="btn btn-primary">Login</button>
+            <button id="cloginBtn" type="button" disabled class="btn btn-danger" onclick="customLogin()">Custom</button>
+        </div>
+        <div class="col"></div>
+    </div>
+
+    <div id="main" class="container" style="display: none">
+        <div class="row">
+            <table id="dashboard" class="table">
+                <thead>
+                <tr>
+                    <th scope="col" style="vertical-align: bottom!important;">#</th>
+                    <th scope="col" style="font-size: 48px">閒家</th>
+                    <th scope="col" style="font-size: 48px">莊家</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr style="height: 80px;">
+                    <th scope="row">1</th>
+                    <td id="p1" style="font-size: 36px"></td>
+                    <td id="b1" style="font-size: 36px"></td>
+                </tr>
+                <tr style="height: 80px;">
+                    <th scope="row">2</th>
+                    <td id="p2" style="font-size: 36px"></td>
+                    <td id="b2" style="font-size: 36px"></td>
+                </tr>
+                <tr style="height: 80px;">
+                    <th scope="row">3</th>
+                    <td id="p3" style="font-size: 36px"></td>
+                    <td id="b3" style="font-size: 36px"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="row">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Broadcast</span>
+                </div>
+                <input id="broadcast-msg" type="text" class="form-control" aria-label="Default" disabled
+                       aria-describedby="inputGroup-sizing-default">
+            </div>
+        </div>
+        <div id="category" class="row text-center">
+            <div class="col" id="S">
+                SMALL
+            </div>
+            <div class="col" id="PP">
+                PLAYER PAIR
+            </div>
+            <div class="col" id="PW">
+                PLAYER
+            </div>
+            <div class="col" id="T">
+                TIE
+            </div>
+            <div class="col" id="BW">
+                BANKER
+            </div>
+            <div class="col" id="BP">
+                BANKER PAIR
+            </div>
+            <div class="col" id="B">
+                BIG
+            </div>
+        </div>
+
+        <div id="bet" class="row text-center">
+            <div class="col" id="S-money">0</div>
+            <div class="col" id="PP-money">0</div>
+            <div class="col" id="PW-money">0</div>
+            <div class="col" id="T-money">0</div>
+            <div class="col" id="BW-money">0</div>
+            <div class="col" id="BP-money">0</div>
+            <div class="col" id="B-money">0</div>
+        </div>
+
+        <div id="bet-money" class="row">
+            <button type="button" class="btn btn-outline-info" value="10">$10</button>
+            <button type="button" class="btn btn-outline-primary" value="50">$50</button>
+            <button type="button" class="btn btn-outline-dark" value="100">$100</button>
+            <button type="button" class="btn btn-outline-warning" value="200">$200</button>
+            <button type="button" class="btn btn-outline-danger" value="500">$500</button>
+        </div>
+
+        <div class="row" style="height: 150px">
+            <div class="col-7 h-100">
+                <div id="output" class="alert alert-info h-100 w-100" role="alert" style="overflow: auto;">
+                </div>
+            </div>
+            <div class="col-5">
+                <div id="info" class="col alert alert-success w-100" role="alert">
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Name</span>
+                        </div>
+                        <input id="name" type="text" class="form-control" aria-label="Default" disabled
+                               aria-describedby="inputGroup-sizing-default">
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Balance</span>
+                        </div>
+                        <input id="amount" type="text" class="form-control" aria-label="Default" disabled
+                               aria-describedby="inputGroup-sizing-default">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>
